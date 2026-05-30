@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Collections;
 import java.util.List;
 
 @RestController
@@ -19,6 +20,19 @@ public class CategoryController {
 
     public CategoryController(CategoryService categoryService) {
         this.categoryService = categoryService;
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<?> update(@PathVariable Long id, @RequestBody CategoryRequest request, @AuthenticationPrincipal User loggedUser) {
+        try {
+            CategoryResponse response = categoryService.updateCategory(id, request, loggedUser);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            if (e.getMessage().contains("permissão")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Collections.singletonMap("error", e.getMessage()));
+            }
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Collections.singletonMap("error", e.getMessage()));
+        }
     }
 
     @PostMapping

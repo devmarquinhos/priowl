@@ -37,4 +37,20 @@ public class CategoryService {
                 .map(cat -> new CategoryResponse(cat.getId(), cat.getTitle(), cat.getColor()))
                 .collect(Collectors.toList());
     }
+
+    public CategoryResponse updateCategory(Long id, CategoryRequest request, User loggedUser) {
+        Category category = categoryRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Categoria não encontrada."));
+
+        if (!category.getUser().getId().equals(loggedUser.getId())) {
+            throw new RuntimeException("Você não tem permissão para alterar esta categoria.");
+        }
+
+        category.setTitle(request.title());
+        category.setColor(request.color());
+
+        Category updatedCategory = categoryRepository.save(category);
+
+        return new CategoryResponse(updatedCategory.getId(), updatedCategory.getTitle(), updatedCategory.getColor());
+    }
 }
