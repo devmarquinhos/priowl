@@ -48,4 +48,17 @@ public class CategoryController {
 
         return ResponseEntity.ok(categories);
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> delete(@PathVariable Long id, @AuthenticationPrincipal User loggedUser) {
+        try {
+            categoryService.deleteCategory(id, loggedUser);
+            return ResponseEntity.noContent().build();
+        } catch (RuntimeException e) {
+            if (e.getMessage().contains("permissão")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Collections.singletonMap("error", e.getMessage()));
+            }
+            return ResponseEntity.badRequest().body(Collections.singletonMap("error", e.getMessage()));
+        }
+    }
 }

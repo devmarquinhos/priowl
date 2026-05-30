@@ -53,4 +53,19 @@ public class CategoryService {
 
         return new CategoryResponse(updatedCategory.getId(), updatedCategory.getTitle(), updatedCategory.getColor());
     }
+
+    public void deleteCategory(Long id, User loggedUser) {
+        Category category = categoryRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Categoria não encontrada."));
+
+        if (!category.getUser().getId().equals(loggedUser.getId())) {
+            throw new RuntimeException("Você não tem permissão para eliminar esta categoria.");
+        }
+
+        try {
+            categoryRepository.delete(category);
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            throw new RuntimeException("Não é possível eliminar a categoria pois existem tarefas associadas a ela.");
+        }
+    }
 }
