@@ -35,7 +35,7 @@ O projeto segue a arquitetura 12-Factor App. Crie um arquivo .env na raiz do pro
 - [x] Infraestrutura Core & Conexão com o Banco
 - [x] Configuração de Segurança Inicial (BCrypt)
 - [x] Versionamento de Banco (Flyway Baseline)
-- [ ] Módulo de Usuários 🔄 (Em Desenvolvimento)
+- [x] Módulo de Usuários
   - [x] Entidade User e UserRepository
   - [x] Endpoint de Cadastro (/api/users/register)
 - [x] Autenticação e Login (Tokens JWT)
