@@ -38,7 +38,7 @@ O projeto segue a arquitetura 12-Factor App. Crie um arquivo .env na raiz do pro
 - [ ] Módulo de Usuários 🔄 (Em Desenvolvimento)
   - [x] Entidade User e UserRepository
   - [x] Endpoint de Cadastro (/api/users/register)
-- [ ] Autenticação e Login (Tokens JWT)
+- [x] Autenticação e Login (Tokens JWT)
 - [ ] Módulo de Categorias ⏳
 - [ ] Módulo de Tarefas & Priorização ⏳
 - [ ] Motor de Dependências (Prevenção de Deadlocks) ⏳
