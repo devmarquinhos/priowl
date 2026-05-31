@@ -4,8 +4,10 @@ import com.devmarquinhos.priorium.dto.TaskRequest;
 import com.devmarquinhos.priorium.dto.TaskResponse;
 import com.devmarquinhos.priorium.model.Category;
 import com.devmarquinhos.priorium.model.Task;
+import com.devmarquinhos.priorium.model.TaskDependency;
 import com.devmarquinhos.priorium.model.User;
 import com.devmarquinhos.priorium.repository.CategoryRepository;
+import com.devmarquinhos.priorium.repository.TaskDependencyRepository;
 import com.devmarquinhos.priorium.repository.TaskRepository;
 import org.springframework.stereotype.Service;
 
@@ -17,10 +19,12 @@ public class TaskService {
 
     private final TaskRepository taskRepository;
     private final CategoryRepository categoryRepository;
+    private final TaskDependencyRepository taskDependencyRepository;
 
-    public TaskService(TaskRepository taskRepository, CategoryRepository categoryRepository) {
+    public TaskService(TaskRepository taskRepository, CategoryRepository categoryRepository, TaskDependencyRepository taskDependencyRepository) {
         this.taskRepository = taskRepository;
         this.categoryRepository = categoryRepository;
+        this.taskDependencyRepository = taskDependencyRepository;
     }
 
     public TaskResponse createTask(TaskRequest request, User loggedUser) {
@@ -77,7 +81,16 @@ public class TaskService {
 
         if (request.status() != null) {
             try {
-                task.setStatus(com.devmarquinhos.priorium.model.TaskStatus.valueOf(request.status().toUpperCase()));
+                var newStatus = com.devmarquinhos.priorium.model.TaskStatus.valueOf(request.status().toUpperCase());
+
+                if (newStatus == com.devmarquinhos.priorium.model.TaskStatus.COMPLETED) {
+                    long pendingDependencies = taskDependencyRepository.countPendingBlockingTasks(id);
+                    if (pendingDependencies > 0) {
+                        throw new RuntimeException("Não é possível concluir esta tarefa. Ela possui " + pendingDependencies + " tarefa(s) bloqueadora(s) pendente(s).");
+                    }
+                }
+
+                task.setStatus(newStatus);
             } catch (IllegalArgumentException e) {
                 throw new RuntimeException("Status inválido. Use PENDING, IN_PROGRESS, COMPLETED ou CANCELLED.");
             }
@@ -126,6 +139,33 @@ public class TaskService {
         }
 
         taskRepository.delete(task);
+    }
+
+    public void addDependency(Long blockedTaskId, Long blockingTaskId, User loggedUser) {
+        if (blockedTaskId.equals(blockingTaskId)) {
+            throw new RuntimeException("Uma tarefa não pode depender dela mesma.");
+        }
+
+        Task blockedTask = taskRepository.findById(blockedTaskId)
+                .orElseThrow(() -> new RuntimeException("Tarefa bloqueada não encontrada."));
+        if (!blockedTask.getUser().getId().equals(loggedUser.getId())) {
+            throw new RuntimeException("Permissão negada na tarefa bloqueada.");
+        }
+
+        Task blockingTask = taskRepository.findById(blockingTaskId)
+                .orElseThrow(() -> new RuntimeException("Tarefa bloqueadora não encontrada."));
+        if (!blockingTask.getUser().getId().equals(loggedUser.getId())) {
+            throw new RuntimeException("Permissão negada na tarefa bloqueadora.");
+        }
+
+        if (taskDependencyRepository.existsByBlockingTaskIdAndBlockedTaskId(blockingTaskId, blockedTaskId)) {
+            throw new RuntimeException("Esta dependência já existe.");
+        }
+
+        TaskDependency dependency = new TaskDependency();
+        dependency.setBlockingTask(blockingTask);
+        dependency.setBlockedTask(blockedTask);
+        taskDependencyRepository.save(dependency);
     }
 
     private TaskResponse mapToResponse(Task task) {

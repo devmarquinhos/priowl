@@ -33,6 +33,23 @@ public class TaskController {
         }
     }
 
+    @PostMapping("/{id}/dependencies/{blockingId}")
+    public ResponseEntity<?> addDependency(
+            @PathVariable Long id,
+            @PathVariable Long blockingId,
+            @AuthenticationPrincipal User loggedUser) {
+        try {
+            taskService.addDependency(id, blockingId, loggedUser);
+            
+            return ResponseEntity.status(HttpStatus.CREATED).build();
+        } catch (RuntimeException e) {
+            if (e.getMessage().contains("negada")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Collections.singletonMap("error", e.getMessage()));
+            }
+            return ResponseEntity.badRequest().body(Collections.singletonMap("error", e.getMessage()));
+        }
+    }
+
     @PutMapping("/{id}")
     public ResponseEntity<?> update(
             @PathVariable Long id,
