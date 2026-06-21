@@ -1,16 +1,22 @@
-FROM ubuntu:latest AS build
+FROM eclipse-temurin:26-jdk AS build
+WORKDIR /app
 
-RUN apt-get update
-RUN apt-get install openjdk-26-jdk -y
-COPY . .
+COPY .mvn/ .mvn
+COPY mvnw pom.xml ./
 
-RUN apt-get install maven -y
-RUN mvn clean install
+RUN chmod +x ./mvnw
 
-FROM openjdk:26-jdk-slim
+RUN ./mvnw dependency:go-offline
+
+COPY src ./src
+
+RUN ./mvnw clean package -DskipTests
+
+FROM eclipse-temurin:26-jre-slim
+WORKDIR /app
 
 EXPOSE 8080
 
-COPY --from=build /target/priorium-0.0.1-SNAPSHOT.jar app.jar
+COPY --from=build /app/target/priorium-0.0.1-SNAPSHOT.jar app.jar
 
-ENTRYPOINT ["java","-jar","app.jar"]
+ENTRYPOINT ["java", "-jar", "app.jar"]
