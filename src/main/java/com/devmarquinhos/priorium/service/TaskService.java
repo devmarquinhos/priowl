@@ -1,11 +1,9 @@
 package com.devmarquinhos.priorium.service;
 
+import com.devmarquinhos.priorium.dto.DashboardResponse;
 import com.devmarquinhos.priorium.dto.TaskRequest;
 import com.devmarquinhos.priorium.dto.TaskResponse;
-import com.devmarquinhos.priorium.model.Category;
-import com.devmarquinhos.priorium.model.Task;
-import com.devmarquinhos.priorium.model.TaskDependency;
-import com.devmarquinhos.priorium.model.User;
+import com.devmarquinhos.priorium.model.*;
 import com.devmarquinhos.priorium.repository.CategoryRepository;
 import com.devmarquinhos.priorium.repository.TaskDependencyRepository;
 import com.devmarquinhos.priorium.repository.TaskRepository;
@@ -166,6 +164,24 @@ public class TaskService {
         dependency.setBlockingTask(blockingTask);
         dependency.setBlockedTask(blockedTask);
         taskDependencyRepository.save(dependency);
+    }
+
+    private Double calculatePercentage(long completed, long totalActive){
+        if (totalActive == 0) {
+            return 0.0;
+        }
+
+        Double percentage = ((double) completed / totalActive) * 100;
+
+        return Math.floor(percentage);
+    }
+
+    public DashboardResponse getDashboardSummary(User loggedUser) {
+        long completed = taskRepository.countByUserIdAndStatus(loggedUser.getId(), TaskStatus.COMPLETED);
+        long totalActive = taskRepository.countByUserIdAndStatusNot(loggedUser.getId(), TaskStatus.CANCELLED);
+        double progress = this.calculatePercentage(completed, totalActive);
+
+        return new DashboardResponse(progress, completed, totalActive);
     }
 
     private TaskResponse mapToResponse(Task task) {

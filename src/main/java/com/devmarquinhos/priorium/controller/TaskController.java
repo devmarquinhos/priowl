@@ -1,5 +1,6 @@
 package com.devmarquinhos.priorium.controller;
 
+import com.devmarquinhos.priorium.dto.DashboardResponse;
 import com.devmarquinhos.priorium.dto.TaskRequest;
 import com.devmarquinhos.priorium.dto.TaskResponse;
 import com.devmarquinhos.priorium.model.User;
@@ -40,7 +41,7 @@ public class TaskController {
             @AuthenticationPrincipal User loggedUser) {
         try {
             taskService.addDependency(id, blockingId, loggedUser);
-            
+
             return ResponseEntity.status(HttpStatus.CREATED).build();
         } catch (RuntimeException e) {
             if (e.getMessage().contains("negada")) {
@@ -71,6 +72,14 @@ public class TaskController {
             @AuthenticationPrincipal User loggedUser) {
         List<TaskResponse> tasks = taskService.listUserTasks(loggedUser);
         return ResponseEntity.ok(tasks);
+    }
+
+    @GetMapping("/summary")
+    public ResponseEntity<DashboardResponse> getSummary(
+            @AuthenticationPrincipal User loggedUser){
+        DashboardResponse dashboardResponse = taskService.getDashboardSummary(loggedUser);
+
+        return ResponseEntity.ok(dashboardResponse);
     }
 
     @DeleteMapping("/{id}")
