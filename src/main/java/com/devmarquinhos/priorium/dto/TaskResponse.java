@@ -10,6 +10,7 @@ public record TaskResponse(
         Integer importance,
         LocalDateTime deadline,
         Long categoryId,
-        Long parentTaskId
+        Long parentTaskId,
+        Double branchProgress
 ) {
 }

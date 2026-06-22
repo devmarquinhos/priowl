@@ -40,4 +40,16 @@ public class Task {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_task_id")
     private Task parentTask;
+
+    public Long getParentTaskId() {
+        return this.parentTask != null ? this.parentTask.getId() : null;
+    }
+
+    public boolean isEffectivelyCompleted() {
+        return this.status == TaskStatus.COMPLETED;
+    }
+
+    public boolean isEffectivelyActive() {
+        return this.status != TaskStatus.CANCELLED;
+    }
 }

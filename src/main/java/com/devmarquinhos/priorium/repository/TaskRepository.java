@@ -13,7 +13,13 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
 
     List<Task> findByParentTaskId(Long parentTaskId);
 
+    List<Task> findAllByParentTask_IdIn(List<Long> parentTaskIds);
+
     long countByUserIdAndStatus(Long userId, TaskStatus status);
 
     long countByUserIdAndStatusNot(Long userId, TaskStatus status);
+
+    long countByParentTask_IdAndStatus(Long parentTaskId, TaskStatus status);
+
+    long countByParentTask_IdAndStatusNot(Long parentTaskId, TaskStatus status);
 }
