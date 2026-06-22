@@ -1,6 +1,7 @@
 package com.devmarquinhos.priorium.controller;
 
 import com.devmarquinhos.priorium.dto.DashboardResponse;
+import com.devmarquinhos.priorium.dto.TaskFilterRequest;
 import com.devmarquinhos.priorium.dto.TaskRequest;
 import com.devmarquinhos.priorium.dto.TaskResponse;
 import com.devmarquinhos.priorium.model.User;
@@ -80,6 +81,15 @@ public class TaskController {
         DashboardResponse dashboardResponse = taskService.getDashboardSummary(loggedUser);
 
         return ResponseEntity.ok(dashboardResponse);
+    }
+
+    @GetMapping("/filter")
+    public ResponseEntity<List<TaskResponse>> filterTasks(
+            @AuthenticationPrincipal User loggedUser,
+            TaskFilterRequest filterParams
+    ) {
+        List<TaskResponse> responses = taskService.filterUserTasks(loggedUser, filterParams);
+        return ResponseEntity.ok(responses);
     }
 
     @DeleteMapping("/{id}")

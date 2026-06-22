@@ -1,6 +1,7 @@
 package com.devmarquinhos.priorium.service;
 
 import com.devmarquinhos.priorium.dto.DashboardResponse;
+import com.devmarquinhos.priorium.dto.TaskFilterRequest;
 import com.devmarquinhos.priorium.dto.TaskRequest;
 import com.devmarquinhos.priorium.dto.TaskResponse;
 import com.devmarquinhos.priorium.model.*;
@@ -13,6 +14,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
+
+import static java.util.Collections.emptyList;
 
 @Service
 public class TaskService {
@@ -60,29 +63,30 @@ public class TaskService {
         return mapToResponse(savedTask);
     }
 
-    public List<TaskResponse> listUserTasks(User loggedUser) {
-        List<Task> userTasks = taskRepository.findByUserId(loggedUser.getId());
-
-        if (userTasks.isEmpty()) {
-            return java.util.Collections.emptyList();
+    private List<TaskResponse> enrichWithBranchProgress(List<Task> tasks) {
+        if (tasks == null || tasks.isEmpty()) {
+            return emptyList();
         }
 
-        // lists tasks ids and substasks and creates in memory cache
-        List<Long> parentIds = userTasks.stream().map(Task::getId).toList();
+        List<Long> parentIds = tasks.stream().map(Task::getId).toList();
         List<Task> allSubTasks = taskRepository.findAllByParentTask_IdIn(parentIds);
 
-        // task id - value map
         Map<Long, List<Task>> subTasksByParentId = allSubTasks.stream()
                 .collect(Collectors.groupingBy(Task::getParentTaskId));
 
-        return userTasks.stream()
+        return tasks.stream()
                 .map(task -> {
-                    List<Task> children = subTasksByParentId.getOrDefault(task.getId(), java.util.Collections.emptyList());
+                    List<Task> children = subTasksByParentId.getOrDefault(task.getId(), emptyList());
                     Double branchCalculated = this.calculateProgressFromList(children);
-
                     return this.mapToResponse(task, branchCalculated);
                 })
                 .toList();
+    }
+
+    public List<TaskResponse> listUserTasks(User loggedUser) {
+        List<Task> userTasks = taskRepository.findByUserId(loggedUser.getId());
+
+        return this.enrichWithBranchProgress(userTasks);
     }
 
     public TaskResponse updateTask(Long id, TaskRequest request, User loggedUser) {
@@ -217,7 +221,17 @@ public class TaskService {
         );
     }
 
+    public List<TaskResponse> filterUserTasks(User loggedUser, TaskFilterRequest filter) {
+        String titleSearch = filter.title() != null && !filter.title().isBlank() ? "%" + filter.title().toLowerCase() + "%" : null;
 
+        List<Task> filtered = taskRepository.filterUserTasks(
+                loggedUser.getId(),
+                filter.status(),
+                filter.importance(),
+                titleSearch
+        );
+        return this.enrichWithBranchProgress(filtered);
+    }
 
     public DashboardResponse getDashboardSummary(User loggedUser) {
         Long userId = loggedUser.getId();
