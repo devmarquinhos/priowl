@@ -28,6 +28,7 @@ O projeto segue a arquitetura 12-Factor App. Crie um arquivo .env na raiz do pro
     DB_URL=jdbc:postgresql://localhost:5432/nome_do_seu_banco
     DB_USERNAME=postgres
     DB_PASSWORD=sua_senha
+    JWT_SECRET=seu_jwt_secret
 ```
 
 ## 🛣️ Roadmap e Status do Desenvolvimento
@@ -39,9 +40,9 @@ O projeto segue a arquitetura 12-Factor App. Crie um arquivo .env na raiz do pro
   - [x] Entidade User e UserRepository
   - [x] Endpoint de Cadastro (/api/users/register)
 - [x] Autenticação e Login (Tokens JWT)
-- [ ] Módulo de Categorias ⏳
+- [x] Módulo de Categorias ⏳
 - [ ] Módulo de Tarefas & Priorização ⏳
-- [ ] Motor de Dependências (Prevenção de Deadlocks) ⏳
+- [x] Motor de Dependências (Prevenção de Deadlocks) ⏳
 
 ## 🚀 Como Executar Localmente
 
