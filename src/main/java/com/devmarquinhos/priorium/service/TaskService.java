@@ -228,7 +228,8 @@ public class TaskService {
                 loggedUser.getId(),
                 filter.status(),
                 filter.importance(),
-                titleSearch
+                titleSearch,
+                filter.deadlineBefore()
         );
         return this.enrichWithBranchProgress(filtered);
     }
