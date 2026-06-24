@@ -1,6 +1,6 @@
-# Priorium 🚀
+# Priowl 🚀
 
-O Priorium API é uma API REST desenvolvida em Java com Spring Boot, projetada para a otimização de fluxos de trabalho e gerenciamento inteligente de tarefas. O diferencial do sistema é o seu motor de priorização automática e a gestão de grafos de dependência entre atividades, impedindo a conclusão de tarefas bloqueadas.
+O Priowl API é uma API REST desenvolvida em Java com Spring Boot, projetada para a otimização de fluxos de trabalho e gerenciamento inteligente de tarefas. O diferencial do sistema é o seu motor de priorização automática e a gestão de grafos de dependência entre atividades, impedindo a conclusão de tarefas bloqueadas.
 
 ## 🏗️ Arquitetura do Sistema e Design Patterns
 
