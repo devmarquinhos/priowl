@@ -1,6 +1,7 @@
 package com.devmarquinhos.priorium.service;
 
 import com.devmarquinhos.priorium.dto.DashboardResponse;
+import com.devmarquinhos.priorium.dto.TaskFilterRequest;
 import com.devmarquinhos.priorium.dto.TaskRequest;
 import com.devmarquinhos.priorium.dto.TaskResponse;
 import com.devmarquinhos.priorium.model.*;
@@ -10,7 +11,11 @@ import com.devmarquinhos.priorium.repository.TaskRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
+import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
+
+import static java.util.Collections.emptyList;
 
 @Service
 public class TaskService {
@@ -29,6 +34,7 @@ public class TaskService {
         Task task = new Task();
         task.setTitle(request.title());
         task.setDescription(request.description());
+        task.setStatus(TaskStatus.valueOf(request.status()));
         task.setImportance(request.importance());
         task.setDeadline(request.deadline());
         task.setUser(loggedUser);
@@ -57,11 +63,30 @@ public class TaskService {
         return mapToResponse(savedTask);
     }
 
+    private List<TaskResponse> enrichWithBranchProgress(List<Task> tasks) {
+        if (tasks == null || tasks.isEmpty()) {
+            return emptyList();
+        }
+
+        List<Long> parentIds = tasks.stream().map(Task::getId).toList();
+        List<Task> allSubTasks = taskRepository.findAllByParentTask_IdIn(parentIds);
+
+        Map<Long, List<Task>> subTasksByParentId = allSubTasks.stream()
+                .collect(Collectors.groupingBy(Task::getParentTaskId));
+
+        return tasks.stream()
+                .map(task -> {
+                    List<Task> children = subTasksByParentId.getOrDefault(task.getId(), emptyList());
+                    Double branchCalculated = this.calculateProgressFromList(children);
+                    return this.mapToResponse(task, branchCalculated);
+                })
+                .toList();
+    }
+
     public List<TaskResponse> listUserTasks(User loggedUser) {
-        return taskRepository.findByUserId(loggedUser.getId())
-                .stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+        List<Task> userTasks = taskRepository.findByUserId(loggedUser.getId());
+
+        return this.enrichWithBranchProgress(userTasks);
     }
 
     public TaskResponse updateTask(Long id, TaskRequest request, User loggedUser) {
@@ -166,25 +191,78 @@ public class TaskService {
         taskDependencyRepository.save(dependency);
     }
 
-    private Double calculatePercentage(long completed, long totalActive){
+    private Double calculatePercentage(LongSupplier completedQuery, LongSupplier totalActiveQuery){
+        long totalActive = totalActiveQuery.getAsLong();
         if (totalActive == 0) {
             return 0.0;
         }
+        long completed = completedQuery.getAsLong();
 
-        Double percentage = ((double) completed / totalActive) * 100;
+        double percentage = ((double) completed / totalActive) * 100;
 
         return Math.floor(percentage);
     }
 
-    public DashboardResponse getDashboardSummary(User loggedUser) {
-        long completed = taskRepository.countByUserIdAndStatus(loggedUser.getId(), TaskStatus.COMPLETED);
-        long totalActive = taskRepository.countByUserIdAndStatusNot(loggedUser.getId(), TaskStatus.CANCELLED);
-        double progress = this.calculatePercentage(completed, totalActive);
-
-        return new DashboardResponse(progress, completed, totalActive);
+    public Double calculateBranchProgress(Long parentTaskId) {
+        return this.calculatePercentage(
+                () -> taskRepository.countByParentTask_IdAndStatus(parentTaskId, TaskStatus.COMPLETED),
+                () -> taskRepository.countByParentTask_IdAndStatusNot(parentTaskId, TaskStatus.CANCELLED)
+        );
     }
 
-    private TaskResponse mapToResponse(Task task) {
+    private Double calculateProgressFromList(List<Task> subTasks) {
+        if (subTasks == null || subTasks.isEmpty()) {
+            return 0.0;
+        }
+
+        return this.calculatePercentage(
+                () -> subTasks.stream().filter(Task::isEffectivelyCompleted).count(),
+                () -> subTasks.stream().filter(Task::isEffectivelyActive).count()
+        );
+    }
+
+    public List<TaskResponse> filterUserTasks(User loggedUser, TaskFilterRequest filter) {
+        String titleSearch = filter.title() != null && !filter.title().isBlank() ? "%" + filter.title().toLowerCase() + "%" : null;
+
+        List<Task> filtered = taskRepository.filterUserTasks(
+                loggedUser.getId(),
+                filter.status(),
+                filter.importance(),
+                titleSearch,
+                filter.deadlineBefore()
+        );
+        return this.enrichWithBranchProgress(filtered);
+    }
+
+    public DashboardResponse getDashboardSummary(User loggedUser) {
+        Long userId = loggedUser.getId();
+        long completedTasks = taskRepository.countByUserIdAndStatus(userId, TaskStatus.COMPLETED);
+        long activeTasks = taskRepository.countByUserIdAndStatusNot(userId, TaskStatus.CANCELLED);
+        long cancelledTasks = taskRepository.countByUserIdAndStatus(userId, TaskStatus.CANCELLED);
+        long inProgressTasks = taskRepository.countByUserIdAndStatus(userId, TaskStatus.IN_PROGRESS);
+        long pendingTasks = taskRepository.countByUserIdAndStatus(userId, TaskStatus.PENDING);
+
+        Double progress = this.calculatePercentage(
+                () -> taskRepository.countByUserIdAndStatus(userId, TaskStatus.COMPLETED),
+                () -> taskRepository.countByUserIdAndStatusNot(userId, TaskStatus.CANCELLED)
+        );
+
+        return new DashboardResponse(
+                progress,
+                completedTasks,
+                activeTasks,
+                cancelledTasks,
+                inProgressTasks,
+                pendingTasks);
+    }
+
+    private TaskResponse mapToResponse(Task task){
+        Double progress = this.calculateBranchProgress(task.getId());
+
+        return this.mapToResponse(task, progress);
+    }
+
+    private TaskResponse mapToResponse(Task task, Double branchProgress) {
         return new TaskResponse(
                 task.getId(),
                 task.getTitle(),
@@ -193,7 +271,8 @@ public class TaskService {
                 task.getImportance(),
                 task.getDeadline(),
                 task.getCategory() != null ? task.getCategory().getId() : null,
-                task.getParentTask() != null ? task.getParentTask().getId() : null
+                task.getParentTask() != null ? task.getParentTask().getId() : null,
+                branchProgress
         );
     }
 }
