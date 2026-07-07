@@ -18,4 +18,4 @@ EXPOSE 8080
 
 COPY --from=build /app/target/priowl-0.0.1-SNAPSHOT.jar app.jar
 
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-XX:TieredStopAtLevel=1", "-Xmx300m", "-Xss512k", "-jar", "app.jar"]
