@@ -26,13 +26,11 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
-                        // autenticação obrigatória
                         .requestMatchers(HttpMethod.POST, "/api/users/login").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/users/register").permitAll()
-                        // bloqueia as rotas
+                        .requestMatchers(HttpMethod.GET, "/api/health").permitAll()
                         .anyRequest().authenticated()
                 )
-                // chama o filter
                 .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
