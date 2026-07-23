@@ -1,3 +1,6 @@
+# ======================
+# STAGE 1 - BUILD
+# ======================
 FROM eclipse-temurin:26-jdk AS build
 WORKDIR /app
 
@@ -12,10 +15,16 @@ COPY src ./src
 RUN ./mvnw clean package -DskipTests
 
 FROM eclipse-temurin:26-jre
-WORKDIR /app
 
+WORKDIR /app
 EXPOSE 8080
 
 COPY --from=build /app/target/priowl-0.0.1-SNAPSHOT.jar app.jar
 
-ENTRYPOINT ["java", "-XX:TieredStopAtLevel=1", "-Xmx300m", "-Xss512k", "-jar", "app.jar"]
+ENTRYPOINT ["java", \
+  "-XX:+UseContainerSupport", \
+  "-XX:MaxRAMPercentage=75", \
+  "-XX:+UseG1GC", \
+  "-XX:TieredStopAtLevel=1", \
+  "-Xss512k", \
+  "-jar", "app.jar"]
